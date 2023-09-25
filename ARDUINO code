@@ -1,0 +1,53 @@
+const int laserPin = 2;    // Pin for the laser module
+const int ldrPin = A0;     // Analog pin for the LDR sensor
+const int alarmPin = 13;   // Pin for the alarm (built-in LED)
+const int buttonPin = 7;   // Pin for the reset button
+
+int alarmState = LOW;       // Variable to track alarm state
+int lastLaserState = LOW;   // Variable to track previous laser state
+int lastButtonState = HIGH; // Variable to track previous button state
+unsigned long lastDebounceTime = 0;  // Last time the button was pressed
+unsigned long debounceDelay = 50;    // Debounce delay to prevent button bounce
+
+void setup() {
+  pinMode(laserPin, OUTPUT);
+  pinMode(ldrPin, INPUT);
+  pinMode(alarmPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
+  
+  digitalWrite(laserPin, LOW);  // Turn off the laser initially
+  digitalWrite(alarmPin, LOW);  // Turn off the alarm initially
+  
+  Serial.begin(9600);
+}
+
+void loop() {
+  int ldrValue = analogRead(ldrPin); // Read LDR sensor value
+  
+  // Check if the laser beam is blocked
+  if (ldrValue < 100) {
+    if (lastLaserState == LOW) {
+      // Laser beam crossed, trigger the alarm
+      alarmState = HIGH;
+      digitalWrite(alarmPin, alarmState);
+      Serial.println("Alarm activated!");
+    }
+  } else {
+    // Laser beam not blocked, reset the alarm
+    alarmState = LOW;
+    digitalWrite(alarmPin, alarmState);
+  }
+
+  lastLaserState = ldrValue < 100; // Store the current laser state
+
+  // Check if the reset button is pressed
+  int buttonState = digitalRead(buttonPin);
+  if (buttonState == LOW && lastButtonState == HIGH && millis() - lastDebounceTime > debounceDelay) {
+    // Button is pressed, reset the alarm
+    alarmState = LOW;
+    digitalWrite(alarmPin, alarmState);
+    Serial.println("Alarm reset!");
+    lastDebounceTime = millis();
+  }
+  lastButtonState = buttonState; // Store the current button state
+}
